@@ -52,6 +52,13 @@ class TemplatedHandler implements HttpHandler {
         String responseContent = sb.toString();
         exchange.sendResponseHeaders(200, responseContent.length());
         exchange.getResponseBody().write(responseContent.getBytes());
+
+        exchange.getResponseBody().flush();
+        try {
+            Thread.sleep(250);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         exchange.close();
     }
 }

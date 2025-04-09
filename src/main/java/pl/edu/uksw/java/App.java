@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -28,7 +29,7 @@ public class App {
         this.port = port;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, URISyntaxException {
         App app = new App(8088);
         app.startSocketServer();
 //        app.startHTTPServer();
@@ -47,12 +48,20 @@ public class App {
             out.println("Content-Type: text/html");
             out.println();
             out.println("<html><body><h1>Hello World!</h1></body></html>");
+            out.flush();
+
+            try {
+                Thread.sleep(1250);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
             out.close();
         }
     }
 
-    public void startHTTPServer() throws IOException {
-        var path = Thread.currentThread().getContextClassLoader().getResource("basic").getPath();
+    public void startHTTPServer() throws IOException, URISyntaxException {
+        var path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("www").toURI()).toString();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", exchange -> {
@@ -60,13 +69,19 @@ public class App {
 
             exchange.sendResponseHeaders(200, response.length());
             exchange.getResponseBody().write(response.getBytes());
+            exchange.getResponseBody().flush();
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             exchange.close();
         });
         server.start();
     }
 
-    public void startTemplatedServer() throws IOException {
-        var path = Thread.currentThread().getContextClassLoader().getResource("templated").getPath();
+    public void startTemplatedServer() throws IOException, URISyntaxException {
+        var path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("www").toURI()).toString();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", new TemplatedHandler(path));
@@ -74,8 +89,8 @@ public class App {
     }
 
 
-    public void startFullServer() throws IOException {
-        var path = Thread.currentThread().getContextClassLoader().getResource("www").getPath();
+    public void startFullServer() throws IOException, URISyntaxException {
+        var path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("www").toURI()).toString();
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", new TemplatedHandler(path));
@@ -83,8 +98,8 @@ public class App {
         server.start();
     }
 
-    public void startJavalinBasic() throws IOException {
-        var path = Thread.currentThread().getContextClassLoader().getResource("www").getPath();
+    public void startJavalinBasic() throws IOException, URISyntaxException {
+        var path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("www").toURI()).toString();
 
         Javalin app = Javalin.create(config -> {
             // Serve static files from "static" directory
