@@ -4,8 +4,6 @@ import com.sun.net.httpserver.HttpServer;
 import io.javalin.Javalin;
 import io.javalin.rendering.template.JavalinThymeleaf;
 import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.IContext;
-import org.thymeleaf.context.WebContext;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.IOException;
@@ -106,14 +104,18 @@ public class App {
             config.staticFiles.add(staticFiles -> {
                 staticFiles.directory = "www/static";
             });
+
+            // Root route: serve HTML
+            config.routes.get("/", ctx -> ctx.html("<h1>Hello from Javalin!</h1>"));
+
+            // Route to serve the HTML file directly
+            try {
+                var response = Files.readString(Path.of(path, "index.html"));
+                config.routes.get("/html/", ctx -> ctx.html(response));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         });
-
-        // Root route: serve HTML
-        app.get("/html/", ctx -> ctx.html("<h1>Hello from Javalin!</h1>"));
-
-        // Route to serve the HTML file directly
-        String response = Files.readString(Path.of(path, "index.html"));
-        app.get("/", ctx -> ctx.html(response));
 
         app.start(port);
     }
@@ -136,20 +138,20 @@ public class App {
 
             // Enable templating
             config.fileRenderer(new JavalinThymeleaf(templateEngine));
-        });
 
-        // Render Thymeleaf template
-        app.get("/", ctx -> {
-            ctx.contentType("text/html");
+            // Render Thymeleaf template
+            config.routes.get("/", ctx -> {
+                ctx.contentType("text/html");
 
-            LocalDateTime now = LocalDateTime.now();
+                LocalDateTime now = LocalDateTime.now();
 
-            var replacements = Map.of(
-                    "time", now.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-                    "date", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                    "addr", ctx.req().getRemoteAddr()
-            );
-            ctx.render("index.html", replacements);
+                var replacements = Map.of(
+                        "time", now.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                        "date", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                        "addr", ctx.req().getRemoteAddr()
+                );
+                ctx.render("index.html", replacements);
+            });
         });
 
         app.start(port);
